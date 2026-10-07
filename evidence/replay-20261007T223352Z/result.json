@@ -1,0 +1,11 @@
+{
+  "status": "business_outcome",
+  "outputs": {},
+  "recoveries": [],
+  "failure": null,
+  "business_outcome": {
+    "code": "INVALID_INPUT",
+    "message": "input 'member_id' does not match pattern '^[0-9]{5}$'"
+  },
+  "run_dir": "./evidence/replay-20261007T223352Z"
+}
