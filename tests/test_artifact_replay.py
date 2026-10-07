@@ -226,7 +226,7 @@ def test_builder_from_run():
     )
     assert artifact.id == "member-balance"
     assert artifact.version == "1.0.0"
-    assert artifact.schema_version == "1.0"
+    assert artifact.schema_version == "2.0"
     assert len(artifact.steps) == 2
     assert [s.index for s in artifact.steps] == [0, 1]
     assert artifact.steps[0].target is None
