@@ -1,0 +1,1 @@
+This invocation went through the agent-facing capability catalog (bankgpt_cua/catalog.py). The capability was invoked by name with typed inputs; execution used the deterministic replay engine with zero LLM calls. See manifest.json and result.json.

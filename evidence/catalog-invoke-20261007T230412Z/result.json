@@ -1,0 +1,14 @@
+{
+  "run_id": "member-savings-balance-lookup-957222beada4aaa7",
+  "artifact_id": "member-savings-balance-lookup",
+  "artifact_version": "1.0.0",
+  "status": "success",
+  "outputs": {
+    "savings_balance": "4321.09"
+  },
+  "steps_completed": 7,
+  "recoveries_applied": [],
+  "failure": null,
+  "business_outcome": null,
+  "evidence_dir": null
+}

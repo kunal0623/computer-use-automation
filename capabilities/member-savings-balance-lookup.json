@@ -1,0 +1,297 @@
+{
+  "schema_version": "1.0",
+  "id": "member-savings-balance-lookup",
+  "name": "Member Savings Balance Lookup",
+  "version": "1.0.0",
+  "description": "Log in with username 'operator' and password 'operator', then look up member ${member_id} and read their current savings balance",
+  "surface": {
+    "kind": "web",
+    "entry_point": "http://127.0.0.1:8765/login",
+    "notes": ""
+  },
+  "inputs": [
+    {
+      "name": "member_id",
+      "type": "string",
+      "required": true,
+      "description": "Five-digit member ID to look up.",
+      "pattern": "^[0-9]{5}$",
+      "example": "12345",
+      "redact_in_logs": true
+    }
+  ],
+  "outputs": [
+    {
+      "name": "savings_balance",
+      "type": "string",
+      "description": "Current savings account balance as a decimal string, e.g. 4321.09.",
+      "extraction": {
+        "step_index": 6,
+        "strategy": {
+          "type": "text",
+          "value": "Savings balance"
+        },
+        "postprocess": "extract_currency"
+      }
+    }
+  ],
+  "steps": [
+    {
+      "index": 0,
+      "action": "fill",
+      "target": {
+        "strategies": [
+          {
+            "type": "css",
+            "value": "input[name=\"username\"]",
+            "role": null,
+            "name": null,
+            "attr_name": null,
+            "attr_value": null,
+            "template": null
+          }
+        ],
+        "rationale": "Strategy chain (css), ordered most robust first: role+name leads because it survives markup churn, label and placeholder follow as visible-text affordances, and css/xpath/text are exact-match fallbacks."
+      },
+      "params": {
+        "value": "operator",
+        "key": null,
+        "ms": null,
+        "act_ok": true,
+        "act_detail": "Filled target with 8 chars",
+        "strategy_index": 0
+      },
+      "checkpoint": null,
+      "notes": "I need to log in with the username 'operator' as specified in the goal."
+    },
+    {
+      "index": 1,
+      "action": "fill",
+      "target": {
+        "strategies": [
+          {
+            "type": "css",
+            "value": "input[name=\"password\"]",
+            "role": null,
+            "name": null,
+            "attr_name": null,
+            "attr_value": null,
+            "template": null
+          }
+        ],
+        "rationale": "Strategy chain (css), ordered most robust first: role+name leads because it survives markup churn, label and placeholder follow as visible-text affordances, and css/xpath/text are exact-match fallbacks."
+      },
+      "params": {
+        "value": "operator",
+        "key": null,
+        "ms": null,
+        "act_ok": true,
+        "act_detail": "Filled target with 8 chars",
+        "strategy_index": 0
+      },
+      "checkpoint": null,
+      "notes": "The username has been filled. Now I need to fill the password field with 'operator' before submitting the form."
+    },
+    {
+      "index": 2,
+      "action": "click",
+      "target": {
+        "strategies": [
+          {
+            "type": "role",
+            "value": null,
+            "role": "button",
+            "name": "Log in",
+            "attr_name": null,
+            "attr_value": null,
+            "template": null
+          }
+        ],
+        "rationale": "Strategy chain (role), ordered most robust first: role+name leads because it survives markup churn, label and placeholder follow as visible-text affordances, and css/xpath/text are exact-match fallbacks."
+      },
+      "params": {
+        "value": null,
+        "key": null,
+        "ms": null,
+        "act_ok": true,
+        "act_detail": "Clicked target",
+        "strategy_index": 0
+      },
+      "checkpoint": null,
+      "notes": "The username and password fields have been filled. Now we need to click the 'Log in' button to submit the form."
+    },
+    {
+      "index": 3,
+      "action": "fill",
+      "target": {
+        "strategies": [
+          {
+            "type": "css",
+            "value": "input[name=\"member_id\"]",
+            "role": null,
+            "name": null,
+            "attr_name": null,
+            "attr_value": null,
+            "template": null
+          }
+        ],
+        "rationale": "Strategy chain (css), ordered most robust first: role+name leads because it survives markup churn, label and placeholder follow as visible-text affordances, and css/xpath/text are exact-match fallbacks."
+      },
+      "params": {
+        "value": "${member_id}",
+        "key": null,
+        "ms": null,
+        "act_ok": true,
+        "act_detail": "Filled target with 5 chars",
+        "strategy_index": 0
+      },
+      "checkpoint": null,
+      "notes": "I need to search for member 12345, so I will fill the Member ID input field with '12345'."
+    },
+    {
+      "index": 4,
+      "action": "click",
+      "target": {
+        "strategies": [
+          {
+            "type": "role",
+            "value": null,
+            "role": "button",
+            "name": "Search member",
+            "attr_name": null,
+            "attr_value": null,
+            "template": null
+          }
+        ],
+        "rationale": "Strategy chain (role), ordered most robust first: role+name leads because it survives markup churn, label and placeholder follow as visible-text affordances, and css/xpath/text are exact-match fallbacks."
+      },
+      "params": {
+        "value": null,
+        "key": null,
+        "ms": null,
+        "act_ok": true,
+        "act_detail": "Clicked target",
+        "strategy_index": 0
+      },
+      "checkpoint": null,
+      "notes": "The member ID '12345' has been filled into the input field. Now we need to click the 'Search member' button to submit the search."
+    },
+    {
+      "index": 5,
+      "action": "read",
+      "target": {
+        "strategies": [
+          {
+            "type": "text",
+            "value": "$4,321.09",
+            "role": null,
+            "name": null,
+            "attr_name": null,
+            "attr_value": null,
+            "template": null
+          }
+        ],
+        "rationale": "Strategy chain (text), ordered most robust first: role+name leads because it survives markup churn, label and placeholder follow as visible-text affordances, and css/xpath/text are exact-match fallbacks."
+      },
+      "params": {
+        "value": null,
+        "key": null,
+        "ms": null,
+        "act_ok": true,
+        "act_detail": "Read 25 chars",
+        "strategy_index": 0,
+        "read_text": "Savings balance\t$4,321.09"
+      },
+      "checkpoint": null,
+      "notes": "I will read the savings balance of member 12345, which is displayed as $4,321.09."
+    },
+    {
+      "index": 6,
+      "action": "done",
+      "target": null,
+      "params": {
+        "summary": "Successfully logged in as operator, searched for member ${member_id}, and found their savings balance to be $4,321.09."
+      },
+      "checkpoint": null,
+      "notes": "The savings balance for member 12345 has been successfully read as $4,321.09."
+    }
+  ],
+  "success_condition": {
+    "type": "text_present",
+    "value": "MockBank Member ${member_id}",
+    "description": "Final recorded state from run 59105e1ee89e: expected text present after the last step."
+  },
+  "error_policy": [
+    {
+      "name": "member_not_found",
+      "outcome_class": "business_outcome",
+      "match": {
+        "text_contains": [
+          "No member found"
+        ]
+      },
+      "outcome": {
+        "code": "MEMBER_NOT_FOUND",
+        "message_template": "No member found for ID {member_id}."
+      },
+      "recovery": null
+    },
+    {
+      "name": "validation_error",
+      "outcome_class": "business_outcome",
+      "match": {
+        "text_contains": [
+          "must be 5 digits"
+        ]
+      },
+      "outcome": {
+        "code": "INVALID_INPUT",
+        "message_template": "The member ID was rejected by the application: invalid format."
+      },
+      "recovery": null
+    },
+    {
+      "name": "session_expired",
+      "outcome_class": "recoverable",
+      "match": {
+        "text_contains": [
+          "Session expired"
+        ]
+      },
+      "outcome": {
+        "code": "SESSION_EXPIRED",
+        "message_template": "Session expired."
+      },
+      "recovery": {
+        "action": "navigate",
+        "params": {
+          "url": "${entry_point}"
+        }
+      }
+    },
+    {
+      "name": "permission_denied",
+      "outcome_class": "business_outcome",
+      "match": {
+        "text_contains": [
+          "Permission denied"
+        ]
+      },
+      "outcome": {
+        "code": "PERMISSION_DENIED",
+        "message_template": "The operator account is not permitted to view this page."
+      },
+      "recovery": null
+    }
+  ],
+  "provenance": {
+    "run_id": "59105e1ee89e",
+    "model": "gemini-3.5-flash",
+    "recorded_at": "2026-10-07T22:33:27.649404+00:00",
+    "goal": "Log in with username 'operator' and password 'operator', then look up member 12345 and read their current savings balance"
+  },
+  "review_notes": "Built by tools/discover.py from a completed agent run.\nApproved by reviewer: Approved for catalog demo; genuine model-driven run verified.",
+  "approval_state": "approved",
+  "approved_by": "reviewer",
+  "approved_at": "2026-10-07T23:04:10+00:00"
+}

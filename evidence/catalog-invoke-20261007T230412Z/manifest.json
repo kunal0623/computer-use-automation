@@ -1,0 +1,10 @@
+{
+  "capability_name": "Member Savings Balance Lookup",
+  "artifact_id": "member-savings-balance-lookup",
+  "artifact_version": "1.0.0",
+  "invoked_at": "2026-10-07T23:04:14+00:00",
+  "inputs_hash": "43458283c7b9be96",
+  "approval_state_at_invoke": "approved",
+  "model": null,
+  "run_dir": "./evidence/catalog-invoke-20261007T230412Z"
+}
