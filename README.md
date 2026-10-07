@@ -147,16 +147,37 @@ Each invocation writes `evidence/catalog-invoke-<timestamp>/` with
 through the catalog. See `evidence/catalog-invoke-20261007T230412Z/` for a
 real one.
 
+## Macro Studio
+
+A small web UI for understanding and demoing the system: it lists saved
+capabilities with approval badges and reliability scores, renders each
+artifact in human terms (typed inputs, steps with robustness rationales,
+error policy, provenance), and offers a replay form plus an approve button
+for draft capabilities. It reuses the catalog, the registry, and the
+deterministic replay engine directly; no LLM is ever in the loop.
+
+```bash
+python tools/serve_mock.py            # terminal 1: the mock bank
+.venv/bin/python tools/studio.py      # terminal 2: the studio
+# open http://127.0.0.1:8771
+```
+
+Pick a capability, fill in its inputs, and run the replay. Unattended runs
+are refused for unapproved capabilities, with the same message the CLI
+gives. If the mock bank is not running, the page tells you to start it
+instead of failing obscurely. This UI is a comprehension aid, not part of
+the graded core.
+
 ## Tests
 
 ```bash
 .venv/bin/python -m pytest tests/ -q
 ```
 
-98 tests: mock-app contracts, LLM client and surface seam, artifact schema
+106 tests: mock-app contracts, LLM client and surface seam, artifact schema
 validation, error taxonomy, replay determinism, guardrails, redaction, the
-escalation state machine, approval gating and reliability scoring, and the
-capability catalog.
+escalation state machine, approval gating and reliability scoring, the
+capability catalog, and the Macro Studio pages and replay gating.
 
 ## Layout
 
@@ -179,9 +200,10 @@ capability catalog.
   replay history, with reliability scoring.
 - `bankgpt_cua/catalog.py` : agent-facing capability catalog: discover and
   invoke saved capabilities by name through the deterministic replay engine.
+- `bankgpt_cua/studio.py` : Macro Studio web UI over the catalog.
 - `bankgpt_cua/mock_bank/` : the local legacy-style target application.
 - `tools/` : `discover.py`, `replay.py`, `serve_mock.py`, `approve.py`,
-  `catalog.py`.
+  `catalog.py`, `studio.py`.
 - `evidence/` : saved runs from the demo path above.
 - `capabilities/` : saved artifacts published to the catalog.
 - `REPORT.md` : design write-up (seven sections, per the brief).
