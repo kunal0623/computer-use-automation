@@ -54,6 +54,8 @@ def _require_login(request: Request) -> Optional[Response]:
 
 def create_app() -> FastAPI:
     app = FastAPI(title="MockBank")
+    # The static dir ships empty in git; create it so fresh clones can boot.
+    (BASE_DIR / "static").mkdir(exist_ok=True)
     app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 
     @app.get("/login", response_class=HTMLResponse)
