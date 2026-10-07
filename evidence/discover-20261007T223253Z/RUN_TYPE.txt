@@ -1,0 +1,1 @@
+GENUINE LLM-DRIVEN RUN: model gemini-3.5-flash via OpenAI-compatible endpoint (https://generativelanguage.googleapis.com/v1beta/openai/). The agent's observe->decide->act loop was driven by the model; no scripted decisions.

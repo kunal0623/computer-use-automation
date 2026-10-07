@@ -1,0 +1,4 @@
+goal: Log in with username 'operator' and password 'operator', then look up member *** and read their current savings balance
+status: completed
+run_dir: ./evidence/discover-20261007T223253Z
+artifact: ./evidence/discover-20261007T223253Z/artifact.json

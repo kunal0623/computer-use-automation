@@ -1,0 +1,11 @@
+{
+  "status": "business_outcome",
+  "outputs": {},
+  "recoveries": [],
+  "failure": null,
+  "business_outcome": {
+    "code": "MEMBER_NOT_FOUND",
+    "message": "No member found for ID 99999."
+  },
+  "run_dir": "./evidence/replay-20261007T222207Z"
+}

@@ -1,0 +1,32 @@
+{"ts": "2026-10-07T22:22:05.216636+00:00", "event": "replay_start", "payload": {"run_id": "member-savings-balance-lookup-957222beada4aaa7", "artifact": "member-savings-balance-lookup"}}
+{"ts": "2026-10-07T22:22:06.020867+00:00", "event": "step_start", "payload": {"index": 0, "action": "navigate", "params": {"value": "http://127.0.0.1:8765/login", "key": null, "ms": null, "act_ok": true, "act_detail": "Navigated to http://127.0.0.1:8765/login", "strategy_index": null}}}
+{"ts": "2026-10-07T22:22:06.070461+00:00", "event": "step_done", "payload": {"index": 0, "action": "navigate"}}
+{"ts": "2026-10-07T22:22:06.082677+00:00", "event": "checkpoint_ok", "payload": {"index": 0}}
+{"ts": "2026-10-07T22:22:06.088473+00:00", "event": "step_start", "payload": {"index": 1, "action": "fill", "params": {"value": "operator", "key": null, "ms": null, "act_ok": true, "act_detail": "Filled target with 8 chars", "strategy_index": 0}}}
+{"ts": "2026-10-07T22:22:06.133816+00:00", "event": "strategy_resolved", "payload": {"index": 1, "winning_strategy": 0, "action": "fill"}}
+{"ts": "2026-10-07T22:22:06.178630+00:00", "event": "step_done", "payload": {"index": 1, "action": "fill"}}
+{"ts": "2026-10-07T22:22:06.182118+00:00", "event": "checkpoint_ok", "payload": {"index": 1}}
+{"ts": "2026-10-07T22:22:06.185309+00:00", "event": "step_start", "payload": {"index": 2, "action": "fill", "params": {"value": "operator", "key": null, "ms": null, "act_ok": true, "act_detail": "Filled target with 8 chars", "strategy_index": 0}}}
+{"ts": "2026-10-07T22:22:06.190404+00:00", "event": "strategy_resolved", "payload": {"index": 2, "winning_strategy": 0, "action": "fill"}}
+{"ts": "2026-10-07T22:22:06.209777+00:00", "event": "step_done", "payload": {"index": 2, "action": "fill"}}
+{"ts": "2026-10-07T22:22:06.213738+00:00", "event": "checkpoint_ok", "payload": {"index": 2}}
+{"ts": "2026-10-07T22:22:06.216656+00:00", "event": "step_start", "payload": {"index": 3, "action": "click", "params": {"value": null, "key": null, "ms": null, "act_ok": true, "act_detail": "Clicked target", "strategy_index": 0}}}
+{"ts": "2026-10-07T22:22:06.221768+00:00", "event": "strategy_resolved", "payload": {"index": 3, "winning_strategy": 0, "action": "click"}}
+{"ts": "2026-10-07T22:22:06.279824+00:00", "event": "step_done", "payload": {"index": 3, "action": "click"}}
+{"ts": "2026-10-07T22:22:06.299493+00:00", "event": "checkpoint_ok", "payload": {"index": 3}}
+{"ts": "2026-10-07T22:22:06.302937+00:00", "event": "step_start", "payload": {"index": 4, "action": "fill", "params": {"value": "***", "key": null, "ms": null, "act_ok": true, "act_detail": "Filled target with 5 chars", "strategy_index": 0}}}
+{"ts": "2026-10-07T22:22:06.329596+00:00", "event": "strategy_resolved", "payload": {"index": 4, "winning_strategy": 0, "action": "fill"}}
+{"ts": "2026-10-07T22:22:06.365335+00:00", "event": "step_done", "payload": {"index": 4, "action": "fill"}}
+{"ts": "2026-10-07T22:22:06.368707+00:00", "event": "checkpoint_ok", "payload": {"index": 4}}
+{"ts": "2026-10-07T22:22:06.372635+00:00", "event": "step_start", "payload": {"index": 5, "action": "click", "params": {"value": null, "key": null, "ms": null, "act_ok": true, "act_detail": "Clicked target", "strategy_index": 0}}}
+{"ts": "2026-10-07T22:22:06.384495+00:00", "event": "strategy_resolved", "payload": {"index": 5, "winning_strategy": 0, "action": "click"}}
+{"ts": "2026-10-07T22:22:06.454088+00:00", "event": "step_done", "payload": {"index": 5, "action": "click"}}
+{"ts": "2026-10-07T22:22:06.467222+00:00", "event": "checkpoint_ok", "payload": {"index": 5}}
+{"ts": "2026-10-07T22:22:06.472773+00:00", "event": "step_start", "payload": {"index": 6, "action": "read", "params": {"value": null, "key": null, "ms": null, "act_ok": true, "act_detail": "Read 25 chars", "strategy_index": 0, "read_text": "Savings balance\t$4,321.09"}}}
+{"ts": "2026-10-07T22:22:06.500603+00:00", "event": "strategy_resolved", "payload": {"index": 6, "winning_strategy": 0, "action": "read"}}
+{"ts": "2026-10-07T22:22:06.528829+00:00", "event": "read", "payload": {"index": 6, "chars": 25, "named": false}}
+{"ts": "2026-10-07T22:22:06.528993+00:00", "event": "step_done", "payload": {"index": 6, "action": "read"}}
+{"ts": "2026-10-07T22:22:06.533359+00:00", "event": "checkpoint_ok", "payload": {"index": 6}}
+{"ts": "2026-10-07T22:22:06.533492+00:00", "event": "step_done", "payload": {"index": 7, "action": "done"}}
+{"ts": "2026-10-07T22:22:06.553232+00:00", "event": "output_extracted", "payload": {"name": "savings_balance", "postprocess": "extract_currency"}}
+{"ts": "2026-10-07T22:22:06.553404+00:00", "event": "replay_end", "payload": {"run_id": "member-savings-balance-lookup-957222beada4aaa7", "status": "success", "outputs": ["savings_balance"]}}
