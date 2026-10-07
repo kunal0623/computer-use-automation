@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}MockBank Member Search{% endblock %}
+{% block content %}
+<table class="panel">
+<tr><td class="headerbar">Member Search</td></tr>
+<tr><td>
+<form method="post" action="/search">
+<table>
+<tr>
+<td>Member ID</td>
+<td><label>Member ID <input type="text" name="member_id" maxlength="10"></label></td>
+</tr>
+<tr>
+<td colspan="2"><input type="submit" value="Search member"></td>
+</tr>
+</table>
+</form>
+</td></tr>
+{% if error %}
+<tr><td class="error">{{ error }}</td></tr>
+{% endif %}
+{% if not_found %}
+<tr><td class="error">{{ not_found }}</td></tr>
+{% endif %}
+</table>
+{% endblock %}

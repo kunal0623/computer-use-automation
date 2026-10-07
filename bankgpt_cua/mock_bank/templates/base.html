@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>{% block title %}MockBank{% endblock %}</title>
+<style>
+body { font-family: Arial, Helvetica, sans-serif; background: #f2f2f2; color: #222; }
+table.outer { width: 100%; border-collapse: collapse; }
+table.panel { background: #ffffff; border: 1px solid #999; margin: 40px auto; width: 560px; }
+td { padding: 6px 10px; }
+.headerbar { background: #1a3d6d; color: #ffffff; font-weight: bold; font-size: 16px; }
+.error { color: #b00020; font-weight: bold; }
+.message { color: #0a5c0a; font-weight: bold; }
+input[type=text], input[type=password] { width: 95%; padding: 4px; border: 1px solid #777; }
+input[type=submit] { padding: 5px 18px; }
+</style>
+</head>
+<body>
+<table class="outer">
+<tr>
+<td>
+{% block content %}{% endblock %}
+</td>
+</tr>
+</table>
+</body>
+</html>

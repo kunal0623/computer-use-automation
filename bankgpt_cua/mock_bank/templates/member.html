@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}MockBank Member {{ member_id }}{% endblock %}
+{% block content %}
+<table class="panel">
+<tr><td class="headerbar">Member {{ member_id }}</td></tr>
+<tr><td>
+<table>
+<tr><td>Name</td><td>{{ member.name }}</td></tr>
+<tr><td>Member number</td><td>{{ member_id }}</td></tr>
+</table>
+</td></tr>
+<tr><td>
+<table>
+<tr><td>Account</td><td>Balance</td></tr>
+<tr><td>Savings balance</td><td>{{ member.savings }}</td></tr>
+</table>
+</td></tr>
+<tr><td>
+<form method="get" action="/search" onsubmit="return confirm('Are you sure you want to close this savings account?');">
+<input type="submit" value="Close savings account">
+</form>
+</td></tr>
+</table>
+{% endblock %}

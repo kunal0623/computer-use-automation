@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}MockBank Login{% endblock %}
+{% block content %}
+<table class="panel">
+<tr><td class="headerbar" colspan="2">MockBank Staff Login</td></tr>
+<tr><td colspan="2">
+<form method="post" action="/login">
+<table>
+<tr>
+<td>Username</td>
+<td><label>Username <input type="text" name="username"></label></td>
+</tr>
+<tr>
+<td>Password</td>
+<td><label>Password <input type="password" name="password"></label></td>
+</tr>
+<tr>
+<td colspan="2"><input type="submit" value="Log in"></td>
+</tr>
+</table>
+</form>
+</td></tr>
+{% if message %}
+<tr><td colspan="2" class="message">{{ message }}</td></tr>
+{% endif %}
+{% if error %}
+<tr><td colspan="2" class="error">{{ error }}</td></tr>
+{% endif %}
+</table>
+{% endblock %}
