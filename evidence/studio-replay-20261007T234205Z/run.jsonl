@@ -1,0 +1,2 @@
+{"ts": "2026-10-07T23:42:05.648584+00:00", "event": "replay_start", "payload": {"run_id": "member-savings-balance-lookup-957222beada4aaa7", "artifact": "member-savings-balance-lookup"}}
+{"ts": "2026-10-07T23:42:05.650531+00:00", "event": "hard_failure", "payload": {"code": "SURFACE_START_FAILED", "step_index": -1, "expected": "surface start at http://127.0.0.1:8765/login"}}
