@@ -204,13 +204,25 @@ Deliberately thin or mocked, with reasons:
 - **Multi-tenant overlays and drift dashboards.** Design in section 4;
   building them would be the premature infrastructure the brief warns
   against.
-- **Stretch goals** (capability catalog API, code generation, approval
-  gating, bounded LLM fallback, cross-tenant canonicalization demos,
-  multi-run stability): none taken. The one partial exception is
-  canonicalization: discovery rewrites recorded literals into `${input}`
-  placeholders, the minimum needed for a reusable artifact.
+- **Stretch goals.** Two of the six were built after the initial
+  submission. **Approval gating** (`bankgpt_cua/registry.py`,
+  `tools/approve.py`, `tools/replay.py --unattended`): artifacts carry an
+  approval lifecycle (draft -> approved -> deprecated) and a local registry
+  records approval state plus replay history; reliability is successful
+  replays over total, where business outcomes count as successful and only
+  hard failures count against the score; unattended replay refuses to run
+  unless the capability is approved. **Capability catalog**
+  (`bankgpt_cua/catalog.py`, `tools/catalog.py`): saved artifacts in
+  `capabilities/` are exposed as a named, typed tool surface an agent can
+  list and invoke; invocation validates inputs, requires approval, and runs
+  the deterministic replay engine with zero LLM calls
+  (`evidence/catalog-invoke-20261007T230412Z/` is a real invocation). The
+  remaining four (code generation, bounded LLM fallback, cross-tenant
+  canonicalization demos, multi-run stability) were not taken: the one
+  partial exception is canonicalization, where discovery rewrites recorded
+  literals into `${input}` placeholders, the minimum needed for a reusable
+  artifact.
 
-With more time: the real LLM run first, then approval-gated replay
-(draft -> approved) since that is the natural safety complement to the
-guardrails, then variant overlays for a second mock tenant to prove the
-multi-tenant design.
+With more time: variant overlays for a second mock tenant to prove the
+multi-tenant design, then bounded single-step LLM recovery recorded as
+evidence, never open-ended.

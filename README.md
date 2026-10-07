@@ -94,15 +94,69 @@ console during a run. If the agent gets stuck, it raises an intervention
 request and pauses; the operator takes over the live browser window, acts,
 and hands control back from the console. See REPORT.md section 5.
 
+## Approval & registry
+
+Capabilities move through an approval lifecycle: `draft` -> `approved`
+(-> `deprecated` for retirement). Unattended execution is gated on approval.
+
+```bash
+# approve a capability (also mirrors the state onto the artifact file)
+.venv/bin/python tools/approve.py approve \
+  --artifact capabilities/member-savings-balance-lookup.json \
+  --by "reviewer" --notes "verified against the genuine run"
+
+# send back to draft, or inspect state and reliability
+.venv/bin/python tools/approve.py reject --artifact <path> --by "reviewer" --notes "..."
+.venv/bin/python tools/approve.py status --artifact <path>
+```
+
+The registry (`./registry.json`, local machine state, override with
+`BANKGPT_REGISTRY`) records approval state plus replay history per
+artifact id and version. Reliability is successful replays over total
+replays; business outcomes count as successful (they are correct answers),
+only hard failures count against the score. Only input hashes are stored,
+never raw values.
+
+Replay in unattended mode (the production path) refuses to run unless the
+artifact is approved, exiting non-zero with the exact approval command:
+
+```bash
+.venv/bin/python tools/replay.py --artifact <path> --inputs member_id=12345 --unattended
+```
+
+Interactive replay (default) runs anyway but prints a warning when the
+capability is not approved. Every replay, interactive or not, is recorded
+in the registry.
+
+## Capability catalog
+
+The agent-facing surface: saved artifacts in `./capabilities/` (override
+with `BANKGPT_CAPABILITIES`) are exposed as named, typed capabilities an
+agent can discover and invoke. Invocation validates inputs, requires
+approval, and runs the deterministic replay engine with zero LLM calls.
+
+```bash
+.venv/bin/python tools/catalog.py list
+.venv/bin/python tools/catalog.py invoke \
+  --name "Member Savings Balance Lookup" \
+  --inputs '{"member_id": "12345"}'
+```
+
+Each invocation writes `evidence/catalog-invoke-<timestamp>/` with
+`manifest.json`, `result.json`, and a note recording that the call went
+through the catalog. See `evidence/catalog-invoke-20261007T230412Z/` for a
+real one.
+
 ## Tests
 
 ```bash
 .venv/bin/python -m pytest tests/ -q
 ```
 
-83 tests: mock-app contracts, LLM client and surface seam, artifact schema
-validation, error taxonomy, replay determinism, guardrails, redaction, and
-the escalation state machine.
+98 tests: mock-app contracts, LLM client and surface seam, artifact schema
+validation, error taxonomy, replay determinism, guardrails, redaction, the
+escalation state machine, approval gating and reliability scoring, and the
+capability catalog.
 
 ## Layout
 
@@ -121,9 +175,15 @@ the escalation state machine.
 - `bankgpt_cua/escalation.py` : intervention requests, control-transfer
   state machine, operator console.
 - `bankgpt_cua/evidence.py` : redacted JSONL run logs and failure snapshots.
+- `bankgpt_cua/registry.py` : local JSON registry of approval state and
+  replay history, with reliability scoring.
+- `bankgpt_cua/catalog.py` : agent-facing capability catalog: discover and
+  invoke saved capabilities by name through the deterministic replay engine.
 - `bankgpt_cua/mock_bank/` : the local legacy-style target application.
-- `tools/` : `discover.py`, `replay.py`, `serve_mock.py`.
+- `tools/` : `discover.py`, `replay.py`, `serve_mock.py`, `approve.py`,
+  `catalog.py`.
 - `evidence/` : saved runs from the demo path above.
+- `capabilities/` : saved artifacts published to the catalog.
 - `REPORT.md` : design write-up (seven sections, per the brief).
 
 ## Notes
