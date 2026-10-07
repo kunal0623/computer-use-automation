@@ -4,7 +4,7 @@ Usage:
     python tools/replay.py --artifact ./evidence/discover-.../artifact.json --inputs member_id=123
 
 Exit codes: 0 on success / business_outcome / recovered, 2 on hard_failure,
-1 on anything else.
+3 when unattended mode is blocked on approval, 1 on anything else.
 """
 
 from __future__ import annotations
@@ -53,6 +53,9 @@ def main() -> int:
     parser.add_argument("--headless", action="store_true", default=True)
     parser.add_argument("--headed", action="store_false", dest="headless")
     parser.add_argument("--out", default="./evidence", help="Base evidence directory.")
+    parser.add_argument("--unattended", action="store_true", default=False,
+                        help="Refuse to run unless the artifact is approved "
+                             "in the registry (the production execution path).")
     args = parser.parse_args()
 
     from bankgpt_cua.artifact import CapabilityArtifact
@@ -60,10 +63,30 @@ def main() -> int:
     from bankgpt_cua.guardrails import Policy, redact_dict
     from bankgpt_cua.escalation import EscalationManager
     from bankgpt_cua.evidence import RunLogger, new_run_dir
+    from bankgpt_cua.registry import Registry, ApprovalError
     from bankgpt_cua.replay import replay
 
     inputs = _parse_inputs(args.inputs)
     artifact = CapabilityArtifact.load(args.artifact)
+
+    # Approval gate runs before any browser work is started.
+    registry = Registry()
+    if args.unattended:
+        try:
+            registry.require_approved(artifact.id, artifact.version)
+        except ApprovalError as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 3
+    else:
+        record = registry.get(artifact.id, artifact.version)
+        state = record.approval_state if record else artifact.approval_state
+        if state != "approved":
+            print(
+                f"warning: artifact '{artifact.id}' v{artifact.version} is not "
+                f"approved (state: {state}); running interactively anyway. "
+                f"Unattended runs require approval.",
+                file=sys.stderr,
+            )
 
     os.makedirs(args.out, exist_ok=True)
     run_dir = new_run_dir(args.out, "replay")
@@ -99,6 +122,15 @@ def main() -> int:
     recoveries = _dumpable(getattr(result, "recoveries", []))
     failure = _dumpable(getattr(result, "failure", None))
     business_outcome = _dumpable(getattr(result, "business_outcome", None))
+
+    # Record the outcome in the registry so reliability scores stay current.
+    # Only the inputs hash is stored; raw values never leave this process.
+    if status in ("success", "business_outcome", "recovered", "hard_failure"):
+        try:
+            registry.record_replay(artifact.id, artifact.version, inputs, status)
+        except Exception as exc:  # the registry must never break a run
+            print(f"warning: could not record replay in registry: {exc}",
+                  file=sys.stderr)
 
     logger.finalize(getattr(result, "run_id", os.path.basename(run_dir)))
     result_path = os.path.join(run_dir, "result.json")
