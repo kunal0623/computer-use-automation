@@ -102,7 +102,7 @@ class ErrorPolicyEntry(BaseModel):
 class CapabilityArtifact(BaseModel):
     """The full versioned capability record."""
 
-    schema_version: Literal["1.0"] = "1.0"
+    schema_version: Literal["1.0", "2.0"] = "2.0"
     id: str
     name: str
     version: str = Field(description="Semver, e.g. '1.0.0'.")
@@ -117,6 +117,17 @@ class CapabilityArtifact(BaseModel):
         description="{run_id, model, recorded_at, goal}"
     )
     review_notes: str = ""
+    approval_state: Literal["draft", "approved", "deprecated"] = Field(
+        default="draft",
+        description="Lifecycle state. New artifacts start as draft; only "
+        "approved capabilities may run unattended.",
+    )
+    approved_by: str | None = Field(
+        default=None, description="Reviewer who approved, if any."
+    )
+    approved_at: str | None = Field(
+        default=None, description="ISO UTC timestamp of approval, if any."
+    )
 
     @field_validator("version")
     @classmethod
@@ -155,6 +166,11 @@ class CapabilityArtifact(BaseModel):
         lines: list[str] = []
         lines.append(f"{self.name} (v{self.version})")
         lines.append(f"ID: {self.id} | schema: {self.schema_version}")
+        lines.append(f"Approval: {self.approval_state}" + (
+            f" by {self.approved_by} at {self.approved_at}"
+            if self.approval_state == "approved" and self.approved_by
+            else ""
+        ))
         lines.append(self.description)
         lines.append("")
         lines.append("Inputs:")
@@ -282,7 +298,7 @@ class ArtifactBuilder:
 
         recorded_at = getattr(run, "ended_at", None) or getattr(run, "started_at", None) or ""
         return CapabilityArtifact(
-            schema_version="1.0",
+            schema_version="2.0",
             id=artifact_id,
             name=name,
             version="1.0.0",
