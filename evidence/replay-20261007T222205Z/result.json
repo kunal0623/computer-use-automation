@@ -1,0 +1,10 @@
+{
+  "status": "success",
+  "outputs": {
+    "savings_balance": "4321.09"
+  },
+  "recoveries": [],
+  "failure": null,
+  "business_outcome": null,
+  "run_dir": "./evidence/replay-20261007T222205Z"
+}

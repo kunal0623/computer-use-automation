@@ -1,0 +1,1 @@
+SCRIPTED PIPELINE RUN: ScriptedMockClient replaying a fixed decision sequence for pipeline testing. Not a genuine LLM run.
