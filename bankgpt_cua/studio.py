@@ -19,16 +19,25 @@ Safety properties inherited from the rest of the system:
 
 from __future__ import annotations
 
+import json
 import os
+import queue
 import urllib.parse
 import urllib.request
 from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, Form, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import (
+    FileResponse,
+    HTMLResponse,
+    JSONResponse,
+    RedirectResponse,
+    StreamingResponse,
+)
 from jinja2 import Template
 
+from bankgpt_cua import goals
 from bankgpt_cua.artifact import ArtifactStep, CapabilityArtifact, LocatorTarget
 from bankgpt_cua.catalog import Catalog, CatalogError
 from bankgpt_cua.registry import ApprovalError, Registry
@@ -61,7 +70,9 @@ th { background: #f6f8fa; }
 code { background: #f6f8fa; padding: 0.1em 0.3em; border-radius: 4px; }
 pre { background: #f6f8fa; padding: 1em; border-radius: 8px; overflow-x: auto; }
 input[type=text], input[type=number] { width: 100%; max-width: 420px; padding: 0.4em; font-size: 1em; }
+select { font-size: 1em; padding: 0.4em; max-width: 420px; }
 button { font-size: 1em; padding: 0.5em 1.2em; margin-top: 0.8em; cursor: pointer; }
+.chat-step img { max-width: 100%; border: 1px solid #d0d7de; border-radius: 4px; margin-top: 0.5em; }
 label { display: block; margin: 0.6em 0 0.2em; font-weight: bold; }
 .step { border-left: 3px solid #0969da; padding-left: 0.8em; margin: 0.8em 0; }
 .rationale { color: #57606a; font-style: italic; }
@@ -168,7 +179,7 @@ here.</p></div>
 {{ cap.reliability }} &middot; outputs: {{ cap.outputs|join(', ') }}</p>
 </div>
 {% endfor %}
-<p><a href="/history">Replay history</a></p>
+<p><a href="/chat">Goal chat</a> &middot; <a href="/history">Replay history</a></p>
 """,
     autoescape=True,
 )
@@ -353,6 +364,177 @@ hashes, so history shows result classes, not data.</p>
 """,
     autoescape=True,
 )
+
+
+_CHAT_PAGE = """
+<p><a href="/">&larr; all capabilities</a></p>
+<h1>Goal chat</h1>
+<p class="muted">Type a goal in plain language. The agent drives the mock bank
+live in a browser, and each step lands here as it happens: the action, what it
+targeted, the model's reasoning, and a screenshot.</p>
+<div class="card">
+<label for="goal">Goal</label>
+<input type="text" id="goal" style="max-width:640px"
+placeholder="Look up member 12345 and read their current savings balance">
+<label for="client">Client</label>
+<select id="client">
+<option value="mock">mock: scripted client, deterministic, no API key needed</option>
+<option value="openai">openai: real LLM, needs LLM_API_KEY set</option>
+</select>
+<div id="keywarn" class="warn" style="display:none"><b>No LLM API key detected.</b>
+Set the <code>LLM_API_KEY</code> environment variable before starting a real-LLM
+run, or use the mock client.</div>
+<label><input type="checkbox" id="headless" checked> Headless browser
+<span class="muted">(uncheck to watch the browser window)</span></label>
+<br><button id="run">Run goal</button>
+<p class="muted">One run at a time: the browser session is a shared resource.</p>
+</div>
+<div id="chat"></div>
+<script>
+(function () {
+  var chat = document.getElementById('chat');
+  var running = false;
+
+  function scrollDown(el) { el.scrollIntoView(false); }
+
+  function note(text, cls) {
+    var d = document.createElement('div');
+    d.className = cls || 'card';
+    d.textContent = text;
+    chat.appendChild(d);
+    scrollDown(d);
+    return d;
+  }
+
+  function addStep(d) {
+    var card = document.createElement('div');
+    card.className = 'card chat-step';
+    var title = document.createElement('div');
+    var b = document.createElement('b');
+    b.textContent = '#' + d.index + ' ' + d.action;
+    title.appendChild(b);
+    var t = document.createElement('span');
+    t.textContent = ' on ' + (d.target || 'no target');
+    title.appendChild(t);
+    card.appendChild(title);
+    if (d.reasoning) {
+      var r = document.createElement('div');
+      r.className = 'muted';
+      r.textContent = d.reasoning;
+      card.appendChild(r);
+    }
+    if (d.shot) {
+      var img = document.createElement('img');
+      img.src = d.shot;
+      img.alt = 'screenshot after step ' + d.index;
+      card.appendChild(img);
+    }
+    chat.appendChild(card);
+    scrollDown(card);
+  }
+
+  function addFinal(d, jobId) {
+    var card = document.createElement('div');
+    card.className = (d.status === 'completed') ? 'ok' : 'warn';
+    var b = document.createElement('b');
+    b.textContent = 'Run finished: ' + d.status;
+    card.appendChild(b);
+    if (d.error) {
+      var e = document.createElement('div');
+      e.textContent = d.error;
+      card.appendChild(e);
+    }
+    if (d.status === 'completed') {
+      card.appendChild(document.createElement('br'));
+      var btn = document.createElement('button');
+      btn.textContent = 'Save as capability';
+      btn.onclick = function () {
+        btn.disabled = true;
+        fetch('/api/goals/' + jobId + '/save', {method: 'POST'})
+          .then(function (r) { return r.json().then(function (j) { return {ok: r.ok, body: j}; }); })
+          .then(function (res) {
+            if (!res.ok) {
+              note('Save failed: ' + (res.body.error || 'unknown error'), 'error');
+              btn.disabled = false;
+              return;
+            }
+            var a = document.createElement('a');
+            a.href = res.body.url;
+            a.textContent = 'Open in catalog: ' + res.body.name;
+            card.appendChild(document.createElement('br'));
+            card.appendChild(a);
+            scrollDown(card);
+          });
+      };
+      card.appendChild(btn);
+    }
+    chat.appendChild(card);
+    scrollDown(card);
+    running = false;
+  }
+
+  async function refreshKeyWarn() {
+    try {
+      var r = await fetch('/api/llm-key-status');
+      var j = await r.json();
+      var show = document.getElementById('client').value === 'openai' && !j.openai_available;
+      document.getElementById('keywarn').style.display = show ? 'block' : 'none';
+    } catch (err) { /* non-fatal */ }
+  }
+  document.getElementById('client').addEventListener('change', refreshKeyWarn);
+  refreshKeyWarn();
+
+  document.getElementById('run').onclick = async function () {
+    if (running) { return; }
+    var goal = document.getElementById('goal').value.trim();
+    if (!goal) {
+      note('Type a goal first.', 'warn');
+      return;
+    }
+    running = true;
+    note('You: ' + goal);
+    var status = note('Starting the agent run...', 'card muted');
+    var res, body;
+    try {
+      res = await fetch('/api/goals', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          goal: goal,
+          client: document.getElementById('client').value,
+          headless: document.getElementById('headless').checked
+        })
+      });
+      body = await res.json();
+    } catch (err) {
+      status.textContent = 'Could not reach the Studio server.';
+      running = false;
+      return;
+    }
+    if (!res.ok) {
+      status.className = 'error';
+      status.textContent = 'Could not start: ' + (body.error || 'unknown error');
+      running = false;
+      return;
+    }
+    status.textContent = 'Agent is working. Steps appear below as they happen.';
+    var es = new EventSource('/api/goals/' + body.job_id + '/events');
+    es.addEventListener('step', function (ev) { addStep(JSON.parse(ev.data)); });
+    es.addEventListener('final', function (ev) {
+      addFinal(JSON.parse(ev.data), body.job_id);
+      es.close();
+    });
+    es.onerror = function () {
+      es.close();
+      if (running) {
+        note('Lost the event stream. The run may still be going; check the evidence directory.', 'warn');
+        running = false;
+      }
+    };
+  };
+})();
+</script>
+"""
 
 
 def _capability_view(
@@ -649,5 +831,106 @@ def create_studio_app(
         return RedirectResponse(
             f"/capabilities/{_quote(artifact.name)}", status_code=303
         )
+
+    # ---- Goal chat: run the agent live and stream progress ----
+
+    @app.get("/chat", response_class=HTMLResponse)
+    def chat_page() -> str:
+        return _page("Goal chat", _CHAT_PAGE)
+
+    @app.get("/api/llm-key-status")
+    def api_llm_key_status() -> dict[str, bool]:
+        return {"openai_available": goals.llm_key_available()}
+
+    @app.post("/api/goals")
+    async def api_start_goal(request: Request):
+        try:
+            body = await request.json()
+        except Exception:
+            return JSONResponse({"error": "Request body must be JSON."}, status_code=400)
+        if not isinstance(body, dict):
+            return JSONResponse({"error": "Request body must be a JSON object."}, status_code=400)
+        entry = goals.DEFAULT_CHAT_ENTRY
+        if not _check_entry_point(entry):
+            return JSONResponse(
+                {
+                    "error": (
+                        f"Mock bank is not reachable at {entry}. "
+                        "Start it first: python tools/serve_mock.py"
+                    )
+                },
+                status_code=409,
+            )
+        try:
+            job = goals.start_goal(
+                body.get("goal") or "",
+                body.get("client") or "mock",
+                bool(body.get("headless", True)),
+                entry,
+                evidence_base=evidence_base,
+            )
+        except goals.GoalError as exc:
+            return JSONResponse({"error": str(exc)}, status_code=400)
+        except goals.BusyError as exc:
+            return JSONResponse({"error": str(exc)}, status_code=409)
+        return {"job_id": job.id}
+
+    @app.get("/api/goals/{job_id}")
+    def api_goal_status(job_id: str):
+        job = goals.get_job(job_id)
+        if job is None:
+            return JSONResponse({"error": "Unknown job id."}, status_code=404)
+        return {
+            "job_id": job.id,
+            "goal": job.goal,
+            "client": job.client,
+            "status": job.status,
+            "run_dir": job.run_dir,
+            "artifact_id": job.artifact_id,
+            "error": job.error,
+        }
+
+    @app.get("/api/goals/{job_id}/events")
+    def api_goal_events(job_id: str):
+        job = goals.get_job(job_id)
+        if job is None:
+            return JSONResponse({"error": "Unknown job id."}, status_code=404)
+
+        def gen() -> Any:
+            while True:
+                try:
+                    item = job.events.get(timeout=25)
+                except queue.Empty:
+                    yield ": ping\n\n"
+                    continue
+                yield (
+                    f"event: {item['event']}\n"
+                    f"data: {json.dumps(item['data'], default=str)}\n\n"
+                )
+                if item["event"] == "final":
+                    break
+
+        return StreamingResponse(gen(), media_type="text/event-stream")
+
+    @app.get("/api/goals/{job_id}/shots/{n}")
+    def api_goal_shot(job_id: str, n: int):
+        job = goals.get_job(job_id)
+        if job is None or not job.run_dir:
+            return JSONResponse({"error": "Unknown job."}, status_code=404)
+        path = os.path.join(job.run_dir, "screenshots", f"step-{n}.png")
+        if not os.path.isfile(path):
+            return JSONResponse({"error": "Screenshot not found."}, status_code=404)
+        return FileResponse(path, media_type="image/png")
+
+    @app.post("/api/goals/{job_id}/save")
+    def api_goal_save(job_id: str):
+        job = goals.get_job(job_id)
+        if job is None:
+            return JSONResponse({"error": "Unknown job id."}, status_code=404)
+        try:
+            result = goals.save_as_capability(job, str(catalog.capabilities_dir))
+        except goals.GoalError as exc:
+            return JSONResponse({"error": str(exc)}, status_code=400)
+        return result
 
     return app
