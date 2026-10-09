@@ -18,101 +18,15 @@ import threading
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-DEFAULT_INPUTS = [
-    {
-        "name": "member_id",
-        "type": "string",
-        "required": True,
-        "description": "Five-digit member ID to look up.",
-        "pattern": "^[0-9]{5}$",
-        "example": "12345",
-        "redact_in_logs": True,
-    }
-]
-
-DEFAULT_OUTPUTS = [
-    {
-        "name": "savings_balance",
-        "type": "string",
-        "description": "Current savings account balance as a decimal string, e.g. 4321.09.",
-        "extraction": {
-            "step_index": 6,
-            "strategy": {"type": "text", "value": "Savings balance"},
-            "postprocess": "extract_currency",
-        },
-    }
-]
-
-DEFAULT_ERROR_POLICY = [
-    {
-        "name": "member_not_found",
-        "outcome_class": "business_outcome",
-        "match": {"text_contains": ["No member found"]},
-        "outcome": {
-            "code": "MEMBER_NOT_FOUND",
-            "message_template": "No member found for ID {member_id}.",
-        },
-        "recovery": None,
-    },
-    {
-        "name": "validation_error",
-        "outcome_class": "business_outcome",
-        "match": {"text_contains": ["must be 5 digits"]},
-        "outcome": {
-            "code": "INVALID_INPUT",
-            "message_template": "The member ID was rejected by the application: invalid format.",
-        },
-        "recovery": None,
-    },
-    {
-        "name": "session_expired",
-        "outcome_class": "recoverable",
-        "match": {"text_contains": ["Session expired"]},
-        "outcome": {"code": "SESSION_EXPIRED", "message_template": "Session expired."},
-        "recovery": {"action": "navigate", "params": {"url": "${entry_point}"}},
-    },
-    {
-        "name": "permission_denied",
-        "outcome_class": "business_outcome",
-        "match": {"text_contains": ["Permission denied"]},
-        "outcome": {
-            "code": "PERMISSION_DENIED",
-            "message_template": "The operator account is not permitted to view this page.",
-        },
-        "recovery": None,
-    },
-]
-
-
-def _parameterize(artifact, inputs: list) -> None:
-    """Replace recorded literal values with ${input} placeholders.
-
-    The discovery run uses concrete values (e.g. member ID 12345). For the
-    saved capability to be reusable, any step param or checkpoint that
-    exactly matches a declared input's example is rewritten to reference
-    the input name. This is a deliberate, minimal canonicalization step:
-    replay substitutes the caller's inputs before executing.
-    """
-    for spec in inputs:
-        name = spec.get("name")
-        example = spec.get("example")
-        if not name or example is None:
-            continue
-        placeholder = "${" + name + "}"
-        example_str = str(example)
-        for step in artifact.steps:
-            params = step.params or {}
-            for key, value in list(params.items()):
-                if isinstance(value, str) and value == example_str:
-                    params[key] = placeholder
-                elif isinstance(value, str) and example_str in value:
-                    params[key] = value.replace(example_str, placeholder)
-        cond = artifact.success_condition
-        if cond and isinstance(cond.value, str) and example_str in cond.value:
-            cond.value = cond.value.replace(example_str, placeholder)
-        if isinstance(artifact.description, str) and example_str in artifact.description:
-            artifact.description = artifact.description.replace(example_str, placeholder)
-
+from bankgpt_cua.discovery import (
+    DEFAULT_ERROR_POLICY,
+    DEFAULT_INPUTS,
+    DEFAULT_OUTPUTS,
+    build_artifact,
+    default_secret_values,
+    redact_summary_line,
+    save_artifact_json,
+)
 
 def _load_json_list(path: str | None, what: str) -> list:
     if not path:
@@ -150,7 +64,6 @@ def main() -> int:
     from bankgpt_cua.guardrails import Policy, redact_dict
     from bankgpt_cua.escalation import EscalationManager, create_operator_app
     from bankgpt_cua.evidence import RunLogger, new_run_dir
-    from bankgpt_cua.artifact import ArtifactBuilder
 
     if args.client == "mock":
         print("NOTE: scripted pipeline client, not a genuine LLM run")
@@ -164,11 +77,7 @@ def main() -> int:
     # Load input specs up front so values flagged redact_in_logs are masked
     # in the run log (the scripted demo reuses the example values).
     _inputs_spec = _load_json_list(args.inputs_spec, "inputs") or DEFAULT_INPUTS
-    _secret_values = [
-        str(spec["example"])
-        for spec in _inputs_spec
-        if spec.get("redact_in_logs") and spec.get("example") is not None
-    ]
+    _secret_values = default_secret_values(_inputs_spec)
 
     def _redact(payload):
         return redact_dict(payload, extra_values=_secret_values)
@@ -220,7 +129,7 @@ def main() -> int:
             if args.error_policy_spec
             else DEFAULT_ERROR_POLICY
         )
-        artifact = ArtifactBuilder.from_run(
+        artifact = build_artifact(
             run,
             artifact_id=args.artifact_id or f"artifact-{run_id}",
             name=args.artifact_name or args.goal,
@@ -229,23 +138,13 @@ def main() -> int:
             error_policy=error_policy,
             review_notes="Built by tools/discover.py from a completed agent run.",
         )
-        _parameterize(artifact, inputs)
-        if hasattr(artifact, "model_dump"):
-            payload = artifact.model_dump()
-        elif hasattr(artifact, "to_dict"):
-            payload = artifact.to_dict()
-        else:
-            payload = dict(artifact)
-        with open(artifact_path, "w", encoding="utf-8") as handle:
-            json.dump(payload, handle, indent=2, default=str)
+        artifact_path = str(save_artifact_json(artifact, run_dir))
         summary_lines.append(f"artifact: {artifact_path}")
     else:
         summary_lines.append("artifact: not built (run did not complete)")
 
     with open(summary_path, "w", encoding="utf-8") as handle:
-        redacted_summary = "\n".join(summary_lines)
-        for secret in _secret_values:
-            redacted_summary = redacted_summary.replace(secret, "***")
+        redacted_summary = redact_summary_line("\n".join(summary_lines), _secret_values)
         handle.write(redacted_summary + "\n")
 
     print("\n".join(summary_lines))
