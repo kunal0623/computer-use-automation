@@ -168,16 +168,37 @@ gives. If the mock bank is not running, the page tells you to start it
 instead of failing obscurely. This UI is a comprehension aid, not part of
 the graded core.
 
+### Goal chat
+
+The Studio also has a chat page at `/chat`: type a natural-language goal,
+pick the client (`mock` for the deterministic scripted stand-in, `openai`
+for a real LLM run), and watch the agent drive the mock bank live. Each
+step streams to the page as it happens, with the action, what it targeted,
+the model's reasoning, and a screenshot.
+
+```bash
+python tools/serve_mock.py            # terminal 1: the mock bank
+.venv/bin/python tools/studio.py      # terminal 2: the studio
+# open http://127.0.0.1:8771/chat
+```
+
+Choosing `openai` needs `LLM_API_KEY` set (falls back to `OPENAI_API_KEY`);
+without a key the page warns you and refuses to start. When a run
+completes, the page offers "Save as capability", which copies the run's
+artifact into the capabilities directory so it shows up in the catalog.
+Only one run at a time is allowed, since the browser session is shared.
+
 ## Tests
 
 ```bash
 .venv/bin/python -m pytest tests/ -q
 ```
 
-106 tests: mock-app contracts, LLM client and surface seam, artifact schema
+118 tests: mock-app contracts, LLM client and surface seam, artifact schema
 validation, error taxonomy, replay determinism, guardrails, redaction, the
 escalation state machine, approval gating and reliability scoring, the
-capability catalog, and the Macro Studio pages and replay gating.
+capability catalog, the Macro Studio pages and replay gating, and the goal
+chat API (validation, concurrency cap, SSE stream, save-as-capability).
 
 ## Layout
 
@@ -200,7 +221,14 @@ capability catalog, and the Macro Studio pages and replay gating.
   replay history, with reliability scoring.
 - `bankgpt_cua/catalog.py` : agent-facing capability catalog: discover and
   invoke saved capabilities by name through the deterministic replay engine.
-- `bankgpt_cua/studio.py` : Macro Studio web UI over the catalog.
+- `bankgpt_cua/studio.py` : Macro Studio web UI over the catalog, including
+  the goal chat page.
+- `bankgpt_cua/discovery.py` : shared discovery helpers (default specs,
+  literal canonicalization, artifact build and save), used by both the
+  discover CLI and the chat page.
+- `bankgpt_cua/goals.py` : background goal-run jobs for the chat page:
+  validation, concurrency cap, per-step SSE events with screenshots, and
+  save-as-capability.
 - `bankgpt_cua/mock_bank/` : the local legacy-style target application.
 - `tools/` : `discover.py`, `replay.py`, `serve_mock.py`, `approve.py`,
   `catalog.py`, `studio.py`.
